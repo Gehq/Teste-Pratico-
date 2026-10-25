@@ -1,0 +1,12 @@
+bin/
+obj/
+publish/
+*.db
+*.db-shm
+*.db-wal
+.vs/
+node_modules/
+frontend/dist/
+*.zip
+
+*.log
