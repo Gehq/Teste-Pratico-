@@ -8,10 +8,23 @@ using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var connectionString = builder.Configuration.GetConnectionString("Catalogo") ?? "Data Source=catalogo.db";
+var isSqlite = connectionString.Contains("Data Source=", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(builder.Configuration["DB_PROVIDER"], "sqlite", StringComparison.OrdinalIgnoreCase);
+
 builder.Services.AddDbContext<CatalogoContext>(opt =>
-    opt.UseMySql(builder.Configuration.GetConnectionString("Catalogo"),
-        new MySqlServerVersion(new Version(8, 0, 0)),
-        mysql => mysql.EnableRetryOnFailure(3)));
+{
+    if (isSqlite)
+    {
+        opt.UseSqlite(connectionString);
+    }
+    else
+    {
+        opt.UseMySql(connectionString,
+            new MySqlServerVersion(new Version(8, 0, 0)),
+            mysql => mysql.EnableRetryOnFailure(3));
+    }
+});
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
     p.WithOrigins(builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [])
@@ -40,7 +53,8 @@ using (var scope = app.Services.CreateScope())
 app.UseExceptionHandler(errorApp => errorApp.Run(async ctx =>
 {
     var ex = ctx.Features.Get<IExceptionHandlerFeature>()?.Error;
-    var isDb = ex is MySqlConnector.MySqlException or DbUpdateException or InvalidOperationException;
+    var isDb = ex is MySqlConnector.MySqlException or Microsoft.Data.Sqlite.SqliteException or DbUpdateException or InvalidOperationException
+               || ex?.InnerException is MySqlConnector.MySqlException or Microsoft.Data.Sqlite.SqliteException;
     app.Logger.LogError(ex, "Erro ao processar {Path}", ctx.Request.Path);
     ctx.Response.StatusCode = isDb ? StatusCodes.Status503ServiceUnavailable : StatusCodes.Status500InternalServerError;
     await Results.Problem(

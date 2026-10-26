@@ -24,6 +24,7 @@ COPY ["Arquivos_Atividade prática_519_2026_DEV/SESI INDÚSTRIA", "/app/Arquivos
 # Ajusta caminhos para produção no container
 ENV Paths__Frontend="/app/frontend/dist"
 ENV Paths__Assets="/app/Arquivos_Atividade prática_519_2026_DEV/SESI INDÚSTRIA"
+ENV ConnectionStrings__Catalogo="Data Source=/app/catalogo.db"
 ENV ASPNETCORE_URLS="http://+:80"
 EXPOSE 80
 
